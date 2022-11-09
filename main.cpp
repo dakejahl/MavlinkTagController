@@ -26,33 +26,46 @@ int main(int /*argc*/, char** /*argv[]*/)
         return 1;
     }
 
-    std::cout << "Waiting to discover system..." << std::endl;
-    auto prom = std::promise<std::shared_ptr<System>>{};
-    auto fut = prom.get_future();
+    std::cout << "Waiting to discover Autopilot and QGC systems...\n";
 
-    mavsdk.subscribe_on_new_system([&mavsdk, &prom]() {
+    // Wait 3 seconds for the Autopilot System to show up
+    auto autopilotPromise   = std::promise<std::shared_ptr<System>>{};
+    auto autopilotFuture    = autopilotPromise.get_future();
+    mavsdk.subscribe_on_new_system([&mavsdk, &autopilotPromise]() {
         auto system = mavsdk.systems().back();
-
         if (system->has_autopilot()) {
-            std::cout << "Discovered autopilot" << std::endl;
-            mavsdk.subscribe_on_new_system(nullptr);
-            prom.set_value(system);
+            std::cout << "Discovered Autopilot" << std::endl;
+            autopilotPromise.set_value(system);
+            mavsdk.subscribe_on_new_system(nullptr);            
         }
     });
-
-    // We usually receive heartbeats at 1Hz, therefore we should find a
-    // system after around 3 seconds.
-    if (fut.wait_for(std::chrono::seconds(3)) == std::future_status::timeout) {
-        std::cout << "No autopilot found, exiting." << std::endl;
+    if (autopilotFuture.wait_for(std::chrono::seconds(10)) == std::future_status::timeout) {
+        std::cerr << "No autopilot found, exiting.\n";
         return 1;
     }
 
-    auto system = fut.get();
+    // Since we can't do anything without the QGC connection we wait for it indefinitely
+    auto qgcPromise = std::promise<std::shared_ptr<System>>{};
+    auto qgcFuture  = qgcPromise.get_future();
+    mavsdk.subscribe_on_new_system([&mavsdk, &qgcPromise]() {
+        auto system = mavsdk.systems().back();
+        std::vector< uint8_t > compIds = system->component_ids();
+        if (std::find(compIds.begin(), compIds.end(), MAV_COMP_ID_MISSIONPLANNER) != compIds.end()) {
+            std::cout << "Discovered QGC" << std::endl;
+            qgcPromise.set_value(system);
+            mavsdk.subscribe_on_new_system(nullptr);            
+        }
+    });
+    qgcFuture.wait();
 
-    auto mavlinkPassthrough = MavlinkPassthrough{*system};
-    auto udpPulseReceiver   = UDPPulseReceiver{"127.0.0.1", 30000, mavlinkPassthrough};
+    // We have both systems ready for use now
+    auto autopilotSystem    = autopilotFuture.get();
+    auto qgcSystem          = qgcFuture.get();
+
+    auto mavlinkPassthrough = MavlinkPassthrough{ qgcSystem };
+    auto udpPulseReceiver   = UDPPulseReceiver{ "127.0.0.1", 30000, mavlinkPassthrough };
     
-    CommandHandler{*system, mavlinkPassthrough};
+    CommandHandler{ *qgcSystem, mavlinkPassthrough };
 
     udpPulseReceiver.start();
 
