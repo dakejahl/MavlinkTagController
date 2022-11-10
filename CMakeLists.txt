@@ -24,6 +24,5 @@ add_executable(MavlinkTagController
 )
 
 target_link_libraries(MavlinkTagController
-    MAVSDK::mavsdk_mavlink_passthrough
     MAVSDK::mavsdk
 )
