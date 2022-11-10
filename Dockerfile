@@ -24,7 +24,7 @@ WORKDIR /build-mavsdk/MAVSDK
 RUN git checkout v1.4.7
 RUN git submodule update --init --recursive
 
-RUN cmake -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H.
+RUN cmake -Bbuild/default -DCMAKE_BUILD_TYPE=Release -H.
 RUN cmake --build build/default -j12
 RUN cmake --build build/default --target install
 
