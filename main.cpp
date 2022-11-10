@@ -49,8 +49,7 @@ int main(int /*argc*/, char** /*argv[]*/)
     auto qgcFuture  = qgcPromise.get_future();
     mavsdk.subscribe_on_new_system([&mavsdk, &qgcPromise]() {
         auto system = mavsdk.systems().back();
-        std::vector< uint8_t > compIds = system->component_ids();
-        if (std::find(compIds.begin(), compIds.end(), MAV_COMP_ID_MISSIONPLANNER) != compIds.end()) {
+        if (system->get_system_id() == 255) {
             std::cout << "Discovered QGC" << std::endl;
             qgcPromise.set_value(system);
             mavsdk.subscribe_on_new_system(nullptr);            

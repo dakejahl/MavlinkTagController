@@ -1,6 +1,6 @@
 #include "UDPPulseReceiver.h"
 #include "TunnelProtocol.h"
-#include "sendTunnelMessage"
+#include "sendTunnelMessage.h"
 
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -13,6 +13,8 @@
 #include <iostream>
 #include <string.h>
 #include <cstddef>
+
+using namespace TunnelProtocol;
 
 UDPPulseReceiver::UDPPulseReceiver(std::string localIp, int localPort, MavlinkPassthrough& mavlinkPassthrough)
     : _localIp	         (std::move(localIp))
@@ -86,7 +88,7 @@ void UDPPulseReceiver::receive()
         return;
     }
 
-    int pulseCount = cBytesReceived / sizeof(PulseInfo_T);
+    int pulseCount = cBytesReceived / sizeof(PulseInfo_t);
     int pulseIndex = 0;
 
     while (pulseCount--) {
@@ -102,10 +104,10 @@ void UDPPulseReceiver::receive()
 
         memset(&pulseInfo, 0, sizeof(pulseInfo));
 
-        pulse.startTimeMSecs            = udpPulseInfo.timeSeconds;
-        pulse.snr = udpPulseInfo.snr    = udpPulseInfo.snr;
-        pulse.confirmationStatus        = udpPulseInfo.confirmationStatus;
+        pulseInfo.startTimeMSecs            = udpPulseInfo.timeSeconds;
+        pulseInfo.snr = udpPulseInfo.snr    = udpPulseInfo.snr;
+        pulseInfo.confirmedStatus           = udpPulseInfo.confirmationStatus;
 
-        _sendTunnelMessage(_mavlinkPassthrough, &pulseInfo, sizeof(pulseInfo));
+        sendTunnelMessage(_mavlinkPassthrough, &pulseInfo, sizeof(pulseInfo));
     }
 }

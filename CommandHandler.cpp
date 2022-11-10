@@ -10,6 +10,7 @@
 #include "CommandHandler.h"
 #include "TunnelProtocol.h"
 #include "startAirspyProcess.h"
+#include "sendTunnelMessage.h"
 
 using namespace mavsdk;
 using namespace TunnelProtocol;
@@ -20,7 +21,7 @@ CommandHandler::CommandHandler(System& system, MavlinkPassthrough& mavlinkPassth
 {
     using namespace std::placeholders;
 
-    _mavlinkPassthrough.subscribe_message_async(std::bind(&CommandHandler::_handleTunnelMessage, this, _1));
+    _mavlinkPassthrough.subscribe_message_async(MAVLINK_MSG_ID_TUNNEL, std::bind(&CommandHandler::_handleTunnelMessage, this, _1));
 }
 
 void CommandHandler::_sendCommandAck(uint32_t command, uint32_t result)
@@ -32,24 +33,24 @@ void CommandHandler::_sendCommandAck(uint32_t command, uint32_t result)
     ackInfo.header.command  = COMMAND_ID_ACK;
     ackInfo.result          = result;
 
-    _sendTunnelMessage(_mavlinkPassthrough, &ackInfo, sizeof(ackInfo));
+    sendTunnelMessage(_mavlinkPassthrough, &ackInfo, sizeof(ackInfo));
 }
 
 
 void CommandHandler::_handleTagCommand(const mavlink_tunnel_t& tunnel)
 {
     if (tunnel.payload_length != sizeof(_tagInfo)) {
-        std::cout << "CommandHandler::_handleTagCommand ERROR - Payload length incorrect expected:actual " << sizeof(tagInfo) << " " << tunnel.payload_length;
+        std::cout << "CommandHandler::_handleTagCommand ERROR - Payload length incorrect expected:actual " << sizeof(_tagInfo) << " " << tunnel.payload_length;
         return;
     }
 
-    memcpy(&_tagInfo, tunnel.payload, sizeof(tagInfo));
+    memcpy(&_tagInfo, tunnel.payload, sizeof(_tagInfo));
 
-    std::cout << "handleTagCommand: tagId:freq" << _tagInfo.tagId << " " << _tagInfo.frequency << std::endl;
+    std::cout << "handleTagCommand: id:freq" << _tagInfo.id << " " << _tagInfo.frequencyHz << std::endl;
 
     uint32_t commandResult = COMMAND_RESULT_SUCCESS;
 
-    if (_tagInfo.tagId == 0) {
+    if (_tagInfo.id == 0) {
         std::cout << "handleTagCommand: invalid tag id of 0" << std::endl;
         commandResult  = COMMAND_RESULT_FAILURE;
     }
@@ -69,11 +70,8 @@ void CommandHandler::_handleStopDetection(void)
     _sendCommandAck(COMMAND_ID_STOP_DETECTION, COMMAND_RESULT_SUCCESS);
 }
 
-void CommandHandler::_handleTunnelMessage(mavlink_message_t& message)
+void CommandHandler::_handleTunnelMessage(const mavlink_message_t& message)
 {
-    std::thread* hfThread;
-    std::thread* miniThread;
-
     mavlink_tunnel_t tunnel;
 
     mavlink_msg_tunnel_decode(&message, &tunnel);
@@ -85,7 +83,7 @@ void CommandHandler::_handleTunnelMessage(mavlink_message_t& message)
         return;
     }
 
-    memset(&headerInfo, tunnel.payload, sizeof(headerInfo))
+    memcpy(&headerInfo, tunnel.payload, sizeof(headerInfo));
 
     switch (headerInfo.command) {
     case COMMAND_ID_TAG:
@@ -99,12 +97,12 @@ void CommandHandler::_handleTunnelMessage(mavlink_message_t& message)
         break;
     case COMMAND_ID_AIRSPY_HF:
         std::cout << "Start Airspy HF capture" << std::endl;
-        hfThread = new std::thread(startAirspyHF);
+        new std::thread(startAirspyHF);
         _sendCommandAck(COMMAND_ID_AIRSPY_HF, COMMAND_RESULT_SUCCESS);
         break;
     case COMMAND_ID_AIRSPY_MINI:
         std::cout << "Start Airspy Mini" << std::endl;
-        miniThread = new std::thread(startAirspyMini);
+        new std::thread(startAirspyMini);
         _sendCommandAck(COMMAND_ID_AIRSPY_MINI, COMMAND_RESULT_SUCCESS);
         break;
     }

@@ -20,16 +20,10 @@ add_executable(MavlinkTagController
     UDPPulseReceiver.cpp UDPPulseReceiver.h
     startAirspyProcess.cpp startAirspyProcess.h
     sendTunnelMessage.cpp sendTunnelMessage.h
-    uavrt_interfaces/include/uavrt_interfaces/TunnelProtocol
+    TunnelProtocol.h
 )
 
 target_link_libraries(MavlinkTagController
     MAVSDK::mavsdk_mavlink_passthrough
     MAVSDK::mavsdk
 )
-
-target_include_directories(MavlinkTagController 
-    PRIVATE
-    uavrt_interfaces/include/uavrt_interfaces
-)
-

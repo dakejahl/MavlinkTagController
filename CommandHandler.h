@@ -3,7 +3,7 @@
 #include <mavsdk/mavsdk.h>
 #include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
 
-#include "uavrt_interfaces/include/uavrt_interfaces/TunnelProtocol.h"
+#include "TunnelProtocol.h"
 
 using namespace mavsdk;
 
@@ -16,7 +16,7 @@ private:
     void _handleTagCommand      (const mavlink_tunnel_t& tunnel);
     void _handleStartDetection  (void);
     void _handleStopDetection   (void);
-    void _handleTunnelMessage   (mavlink_message_t& message);
+    void _handleTunnelMessage   (const mavlink_message_t& message);
 
 
 private:
