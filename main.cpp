@@ -22,9 +22,15 @@ int main(int /*argc*/, char** /*argv[]*/)
     ConnectionResult connection_result;
     connection_result = mavsdk.add_any_connection("serial:///dev/ttyS0:1500000");
     if (connection_result != ConnectionResult::Success) {
-        std::cout << "Connection failed: " << connection_result << std::endl;
-        return 1;
+        std::cout << "Connection failed for ttyS0: " << connection_result << std::endl;
+        std::cout << "Connecting to udp instead" << std::endl;
+        connection_result = mavsdk.add_any_connection("udp://0.0.0.0:14540");
+        if (connection_result != ConnectionResult::Success) {
+            std::cout << "Connection failed for udp: " << connection_result << std::endl;
+            return 1;
+        }
     }
+
 
     std::cout << "Waiting to discover Autopilot\n";
 
@@ -33,7 +39,8 @@ int main(int /*argc*/, char** /*argv[]*/)
     auto autopilotFuture    = autopilotPromise.get_future();
     mavsdk.subscribe_on_new_system([&mavsdk, &autopilotPromise]() {
         auto system = mavsdk.systems().back();
-        if (system->has_autopilot()) {
+        std::vector< uint8_t > compIds = system->component_ids();
+        if (std::find(compIds.begin(), compIds.end(), MAV_COMP_ID_AUTOPILOT1) != compIds.end()) {
             std::cout << "Discovered Autopilot" << std::endl;
             autopilotPromise.set_value(system);
             mavsdk.subscribe_on_new_system(nullptr);            
