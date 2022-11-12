@@ -17,16 +17,16 @@ using namespace mavsdk;
 int main(int /*argc*/, char** /*argv[]*/)
 {
     Mavsdk mavsdk;
-    mavsdk.set_configuration(Mavsdk::Configuration(Mavsdk::Configuration::UsageType::CompanionComputer));
+    mavsdk.set_configuration(Mavsdk::Configuration(1, MAV_COMP_ID_ONBOARD_COMPUTER, true));
 
     ConnectionResult connection_result;
-    connection_result = mavsdk.add_any_connection("udp://0.0.0.0:14561");
+    connection_result = mavsdk.add_any_connection("serial:///dev/ttyS0:1500000");
     if (connection_result != ConnectionResult::Success) {
         std::cout << "Connection failed: " << connection_result << std::endl;
         return 1;
     }
 
-    std::cout << "Waiting to discover Autopilot and QGC systems...\n";
+    std::cout << "Waiting to discover Autopilot\n";
 
     // Wait 3 seconds for the Autopilot System to show up
     auto autopilotPromise   = std::promise<std::shared_ptr<System>>{};
@@ -44,6 +44,7 @@ int main(int /*argc*/, char** /*argv[]*/)
         return 1;
     }
 
+#if 0
     // Since we can't do anything without the QGC connection we wait for it indefinitely
     auto qgcPromise = std::promise<std::shared_ptr<System>>{};
     auto qgcFuture  = qgcPromise.get_future();
@@ -57,15 +58,16 @@ int main(int /*argc*/, char** /*argv[]*/)
         }
     });
     qgcFuture.wait();
+#endif
 
     // We have both systems ready for use now
     auto autopilotSystem    = autopilotFuture.get();
-    auto qgcSystem          = qgcFuture.get();
+    //auto qgcSystem          = qgcFuture.get();
 
-    auto mavlinkPassthrough = MavlinkPassthrough{ qgcSystem };
+    auto mavlinkPassthrough = MavlinkPassthrough{ autopilotSystem };
     auto udpPulseReceiver   = UDPPulseReceiver{ "127.0.0.1", 30000, mavlinkPassthrough };
     
-    CommandHandler{ *qgcSystem, mavlinkPassthrough };
+    CommandHandler{ *autopilotSystem, mavlinkPassthrough };
 
     udpPulseReceiver.start();
 
