@@ -2,8 +2,6 @@
 #include "TunnelProtocol.h"
 #include "sendTunnelMessage.h"
 
-#include "mavlink.h"
-
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>

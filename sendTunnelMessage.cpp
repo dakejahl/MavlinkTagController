@@ -1,7 +1,5 @@
 #include "sendTunnelMessage.h"
 
-#include "mavlink.h"
-
 void sendTunnelMessage(mavlink::Mavlink& mavlink, void* tunnelPayload, size_t tunnelPayloadSize)
 {
     mavlink_message_t   message;

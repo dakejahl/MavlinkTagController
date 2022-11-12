@@ -20,10 +20,6 @@ add_executable(MavlinkTagController
 )
 
 target_link_libraries(MavlinkTagController
-    mavlink-cpp
+    mavlinkcpp::mavlink-cpp
 )
 
-target_include_directories(MavlinkTagController
-    PRIVATE
-    mavlink-headers/common
-)
