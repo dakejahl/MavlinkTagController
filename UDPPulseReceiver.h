@@ -1,9 +1,6 @@
 #pragma once
 
-#include <mavsdk/mavsdk.h>
-#include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
-
-using namespace mavsdk;
+#include "mavlink-cpp/Mavlink.hpp"
 
 #include <string>
 #include <memory>
@@ -13,7 +10,7 @@ using namespace mavsdk;
 class UDPPulseReceiver
 {
 public:
-	UDPPulseReceiver(std::string localIp, int localPort, MavlinkPassthrough& mavlinkPassthrough);
+	UDPPulseReceiver(std::string localIp, int localPort, mavlink::Mavlink& mavlink);
 	~UDPPulseReceiver();
 
 	void start 	(void);
@@ -26,5 +23,5 @@ private:
     std::string 			_localIp;
     int 					_localPort;
     int 					_fdSocket	{-1};
-    MavlinkPassthrough&     _mavlinkPassthrough;
+    mavlink::Mavlink& 		_mavlink;
 };

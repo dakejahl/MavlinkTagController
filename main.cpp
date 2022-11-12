@@ -2,70 +2,64 @@
 #include "UDPPulseReceiver.h"
 #include "startAirspyProcess.h"
 
+#include "mavlink.h"
+
+#include "mavlink-cpp/Mavlink.hpp"
+
 #include <chrono>
 #include <cstdint>
-#include <mavsdk/mavsdk.h>
-#include <mavsdk/plugins/action/action.h>
-#include <mavsdk/plugins/telemetry/telemetry.h>
 #include <iostream>
 #include <future>
 #include <memory>
 #include <thread>
 
-using namespace mavsdk;
+using namespace mavlink;
 
 int main(int /*argc*/, char** /*argv[]*/)
 {
-    Mavsdk mavsdk;
-    mavsdk.set_configuration(Mavsdk::Configuration(Mavsdk::Configuration::UsageType::CompanionComputer));
+    ConfigurationSettings udpConfigSettings = {
+        .connection_url = "udp://127.0.0.1:14540",
+        .sysid          = 1,
+        .compid         = MAV_COMP_ID_ONBOARD_COMPUTER,
+        .mav_type       = MAV_TYPE_GENERIC,
+        .mav_autopilot  = MAV_AUTOPILOT_INVALID,
+        .emit_heartbeat = true
+    };
+    ConfigurationSettings serialConfigSettings = {
+        .connection_url = "serial:///dev/ttyS0:921600",
+        .sysid          = 1,
+        .compid         = MAV_COMP_ID_ONBOARD_COMPUTER,
+        .mav_type       = MAV_TYPE_GENERIC,
+        .mav_autopilot  = MAV_AUTOPILOT_INVALID,
+        .emit_heartbeat = true
+    };
 
     ConnectionResult connection_result;
-    connection_result = mavsdk.add_any_connection("udp://0.0.0.0:14561");
-    if (connection_result != ConnectionResult::Success) {
-        std::cout << "Connection failed: " << connection_result << std::endl;
-        return 1;
+    auto mavlink = std::make_shared<Mavlink>(serialConfigSettings);
+    connection_result = mavlink->start();
+    if (connection_result == ConnectionResult::Success) {
+        std::cout << "Connected to ttyS0" << std::endl;
+    } else {
+        std::cout << "Connection failed for ttyS0: " << connection_result << std::endl;
+        std::cout << "Connecting to udp instead" << std::endl;
+        mavlink = std::make_shared<Mavlink>(udpConfigSettings);
+        connection_result = mavlink->start();
+        if (connection_result == ConnectionResult::Success) {
+        std::cout << "Connected to udp" << std::endl;
+        } else {
+            std::cout << "Connection failed for udp: " << connection_result << std::endl;
+            return 1;
+        }
     }
 
-    std::cout << "Waiting to discover Autopilot and QGC systems...\n";
-
-    // Wait 3 seconds for the Autopilot System to show up
-    auto autopilotPromise   = std::promise<std::shared_ptr<System>>{};
-    auto autopilotFuture    = autopilotPromise.get_future();
-    mavsdk.subscribe_on_new_system([&mavsdk, &autopilotPromise]() {
-        auto system = mavsdk.systems().back();
-        if (system->has_autopilot()) {
-            std::cout << "Discovered Autopilot" << std::endl;
-            autopilotPromise.set_value(system);
-            mavsdk.subscribe_on_new_system(nullptr);            
-        }
-    });
-    if (autopilotFuture.wait_for(std::chrono::seconds(10)) == std::future_status::timeout) {
-        std::cerr << "No autopilot found, exiting.\n";
-        return 1;
+    std::cout << "Waiting to discover Autopilot...\n";
+    while (!mavlink->connected()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
-    // Since we can't do anything without the QGC connection we wait for it indefinitely
-    auto qgcPromise = std::promise<std::shared_ptr<System>>{};
-    auto qgcFuture  = qgcPromise.get_future();
-    mavsdk.subscribe_on_new_system([&mavsdk, &qgcPromise]() {
-        auto system = mavsdk.systems().back();
-        std::vector< uint8_t > compIds = system->component_ids();
-        if (std::find(compIds.begin(), compIds.end(), MAV_COMP_ID_MISSIONPLANNER) != compIds.end()) {
-            std::cout << "Discovered QGC" << std::endl;
-            qgcPromise.set_value(system);
-            mavsdk.subscribe_on_new_system(nullptr);            
-        }
-    });
-    qgcFuture.wait();
-
-    // We have both systems ready for use now
-    auto autopilotSystem    = autopilotFuture.get();
-    auto qgcSystem          = qgcFuture.get();
-
-    auto mavlinkPassthrough = MavlinkPassthrough{ qgcSystem };
-    auto udpPulseReceiver   = UDPPulseReceiver{ "127.0.0.1", 30000, mavlinkPassthrough };
+    auto udpPulseReceiver = UDPPulseReceiver{ "127.0.0.1", 30000, *mavlink };
     
-    CommandHandler{ *qgcSystem, mavlinkPassthrough };
+    CommandHandler{ *mavlink };
 
     udpPulseReceiver.start();
 
@@ -74,7 +68,7 @@ int main(int /*argc*/, char** /*argv[]*/)
     while (true) {
         udpPulseReceiver.receive();
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
-}
+    }
 
     return 0;
 }

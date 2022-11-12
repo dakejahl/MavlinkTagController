@@ -1,8 +1,5 @@
 #pragma once
 
-#include <mavsdk/mavsdk.h>
-#include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
+#include "mavlink-cpp/Mavlink.hpp"
 
-using namespace mavsdk;
-
-void sendTunnelMessage(MavlinkPassthrough& mavlinkPassthrough, void* tunnelPayload, size_t tunnelPayloadSize);
+void sendTunnelMessage(mavlink::Mavlink& mavlink, void* tunnelPayload, size_t tunnelPayloadSize);

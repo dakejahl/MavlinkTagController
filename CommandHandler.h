@@ -1,15 +1,12 @@
 #pragma once
 
-#include <mavsdk/mavsdk.h>
-#include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
+#include "mavlink-cpp/Mavlink.hpp"
 
 #include "TunnelProtocol.h"
 
-using namespace mavsdk;
-
 class CommandHandler {
 public:
-    CommandHandler(System& system, MavlinkPassthrough& mavlinkPassthrough);
+    CommandHandler(mavlink::Mavlink& mavlink);
 
 private:
     void _sendCommandAck        (uint32_t command, uint32_t result);
@@ -20,7 +17,6 @@ private:
 
 
 private:
-    System&                     _system;
-    MavlinkPassthrough&         _mavlinkPassthrough;
+    mavlink::Mavlink&           _mavlink;
     TunnelProtocol::TagInfo_t   _tagInfo;
 };

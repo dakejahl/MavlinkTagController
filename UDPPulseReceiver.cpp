@@ -2,6 +2,8 @@
 #include "TunnelProtocol.h"
 #include "sendTunnelMessage.h"
 
+#include "mavlink.h"
+
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -16,10 +18,10 @@
 
 using namespace TunnelProtocol;
 
-UDPPulseReceiver::UDPPulseReceiver(std::string localIp, int localPort, MavlinkPassthrough& mavlinkPassthrough)
-    : _localIp	         (std::move(localIp))
-    , _localPort         (localPort)
-    , _mavlinkPassthrough(mavlinkPassthrough)
+UDPPulseReceiver::UDPPulseReceiver(std::string localIp, int localPort, mavlink::Mavlink& mavlink)
+    : _localIp  (std::move(localIp))
+    , _localPort(localPort)
+    , _mavlink  (mavlink)
 {
 
 }
@@ -108,6 +110,6 @@ void UDPPulseReceiver::receive()
         pulseInfo.snr = udpPulseInfo.snr    = udpPulseInfo.snr;
         pulseInfo.confirmedStatus           = udpPulseInfo.confirmationStatus;
 
-        sendTunnelMessage(_mavlinkPassthrough, &pulseInfo, sizeof(pulseInfo));
+        sendTunnelMessage(_mavlink, &pulseInfo, sizeof(pulseInfo));
     }
 }

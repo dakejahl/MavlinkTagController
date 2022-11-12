@@ -34,8 +34,9 @@ Temporary Items
 # End of https://www.toptal.com/developers/gitignore/api/macos
 
 
-# Auterion build output
+# build output
 output
+build
 
 # Other files
 decimationfactorsandrates.xlsx

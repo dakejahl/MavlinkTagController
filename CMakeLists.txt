@@ -6,13 +6,9 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 
 project(MavlinkTagController)
 
-if(NOT MSVC)
-    add_definitions("-Wall -Wextra")
-else()
-    add_definitions("-WX -W2")
-endif()
+add_definitions("-Wall -Wextra")
 
-find_package(MAVSDK REQUIRED)
+find_package(mavlink-cpp REQUIRED)
 
 add_executable(MavlinkTagController
     main.cpp
@@ -24,5 +20,10 @@ add_executable(MavlinkTagController
 )
 
 target_link_libraries(MavlinkTagController
-    MAVSDK::mavsdk
+    mavlink-cpp
+)
+
+target_include_directories(MavlinkTagController
+    PRIVATE
+    mavlink-headers/common
 )

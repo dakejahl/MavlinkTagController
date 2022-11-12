@@ -1,5 +1,8 @@
-#include <mavsdk/mavsdk.h>
-#include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
+#include "CommandHandler.h"
+#include "TunnelProtocol.h"
+#include "startAirspyProcess.h"
+#include "sendTunnelMessage.h"
+
 #include <chrono>
 #include <cstdint>
 #include <iostream>
@@ -7,21 +10,14 @@
 #include <memory>
 #include <thread>
 
-#include "CommandHandler.h"
-#include "TunnelProtocol.h"
-#include "startAirspyProcess.h"
-#include "sendTunnelMessage.h"
-
-using namespace mavsdk;
 using namespace TunnelProtocol;
 
-CommandHandler::CommandHandler(System& system, MavlinkPassthrough& mavlinkPassthrough)
-    : _system               (system)
-    , _mavlinkPassthrough   (mavlinkPassthrough)
+CommandHandler::CommandHandler(mavlink::Mavlink& mavlink)
+    : _mavlink(mavlink)
 {
     using namespace std::placeholders;
 
-    _mavlinkPassthrough.subscribe_message_async(MAVLINK_MSG_ID_TUNNEL, std::bind(&CommandHandler::_handleTunnelMessage, this, _1));
+    mavlink.subscribe_to_message(MAVLINK_MSG_ID_TUNNEL, std::bind(&CommandHandler::_handleTunnelMessage, this, _1));
 }
 
 void CommandHandler::_sendCommandAck(uint32_t command, uint32_t result)
@@ -31,9 +27,10 @@ void CommandHandler::_sendCommandAck(uint32_t command, uint32_t result)
     std::cerr << "_sendCommandAck command:result " << command << " " << result << std::endl;
 
     ackInfo.header.command  = COMMAND_ID_ACK;
+    ackInfo.command         = command;
     ackInfo.result          = result;
 
-    sendTunnelMessage(_mavlinkPassthrough, &ackInfo, sizeof(ackInfo));
+    sendTunnelMessage(_mavlink, &ackInfo, sizeof(ackInfo));
 }
 
 
@@ -105,6 +102,8 @@ void CommandHandler::_handleTunnelMessage(const mavlink_message_t& message)
         new std::thread(startAirspyMini);
         _sendCommandAck(COMMAND_ID_AIRSPY_MINI, COMMAND_RESULT_SUCCESS);
         break;
+    default:
+        std::cout << "_handleTunnelMessage: Unknown command received " << headerInfo.command << std::endl;
+        _sendCommandAck(headerInfo.command, COMMAND_RESULT_FAILURE);
     }
-
 }
