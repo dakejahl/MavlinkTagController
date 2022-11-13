@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mavlink-cpp/Mavlink.hpp>
+#include <Mavlink.hpp>
 
 #include "TunnelProtocol.h"
 

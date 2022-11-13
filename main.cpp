@@ -2,7 +2,7 @@
 #include "UDPPulseReceiver.h"
 #include "startAirspyProcess.h"
 
-#include <mavlink-cpp/Mavlink.hpp>
+#include <Mavlink.hpp>
 
 #include <chrono>
 #include <cstdint>
