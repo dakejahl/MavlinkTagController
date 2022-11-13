@@ -7,3 +7,6 @@
 [submodule "libraries/mavlink-cpp"]
 	path = libraries/mavlink-cpp
 	url = git@github.com:dakejahl/mavlink-cpp.git
+[submodule "libraries/airspyhf"]
+	path = libraries/airspyhf
+	url = git@github.com:airspy/airspyhf.git

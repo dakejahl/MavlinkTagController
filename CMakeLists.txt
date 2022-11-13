@@ -21,5 +21,5 @@ add_executable(MavlinkTagController
 
 target_link_libraries(MavlinkTagController
     mavlink-cpp
+    airspyhf
 )
-
